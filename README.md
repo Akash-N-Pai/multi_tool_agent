@@ -33,7 +33,7 @@ multi_tool_agent/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Akash-N-Pai/multi_tool_agent.git
+git clone https://github.com/maniaclab/multi_tool_agent.git
 cd multi_tool_agent
 ```
 
