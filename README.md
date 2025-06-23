@@ -1,6 +1,12 @@
-# 🌤️🕒 Multi Tool Agent
+# 🌤️�� Multi Tool Agent
 
-A simple AI agent built with [Google's Agent Development Kit (ADK)](https://github.com/google/generative-ai-docs/tree/main/tools/agent-development-kit) that responds to user queries about the **weather** and **current time** in specific cities. The agent uses tool functions defined in Python and supports multiple AI models including Gemini, GPT-4, and Claude via LiteLLM integration.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+A showcase of AI agents built with [Google's Agent Development Kit (ADK)](https://github.com/google/generative-ai-docs/tree/main/tools/agent-development-kit).
+
+This repo includes:
+- A **simple agent** for weather and time in New York (demo/learning)
+- A **full-featured agent** with real weather, interactive CLI, guardrails, and user preferences
 
 ---
 
@@ -8,145 +14,121 @@ A simple AI agent built with [Google's Agent Development Kit (ADK)](https://gith
 
 ```
 multi_tool_agent/
-├── __init__.py       # Module initializer
-├── agent.py          # Core agent definition and tool functions
-├── agent.ipynb       # Jupyter notebook with multi-model implementation
-├── .env              # Environment variables (API keys)
-├── .gitignore        # Prevents secrets and compiled files from being committed
+├── .gitignore                # Ignores .env and __pycache__ in root
+├── .env                      # (optional) Environment variables for root agent
+├── agent/                    # Package version of simple agent
+│   ├── agent.py              # Simple agent (mock, New York only, standalone script)
+│   ├── __init__.py
+│   ├── .gitignore            # Ignores .env in this folder
+│   └── README_agent.md       # Usage and details for the simple agent
+├── full_agent/               # Full-featured, production-ready agent
+│   ├── full_agent.py
+│   ├── __init__.py
+│   ├── .gitignore            # Ignores .env in this folder
+│   └── README_full_agent.md  # Usage and details for the full agent
+├── agent.ipynb               # Jupyter notebook (learning resource only)
+├── __pycache__/              # Python bytecode cache (ignored by git)
+└── README.md                 # This file
 ```
 
 ---
 
 ## ✅ Features
 
-- ✅ Responds with weather reports for supported cities (e.g., New York)
-- ✅ Returns the current time for supported timezones (e.g., America/New_York)
-- ✅ Modular tool function design
-- ✅ Runs locally with dev UI or CLI
-- ✅ Multi-model support via LiteLLM (Gemini, GPT-4, Claude)
-- ✅ Jupyter notebook implementation for easy experimentation
+### Simple Agent (`agent.py` or `agent/agent.py`)
+- Returns a mock weather report for New York
+- Returns the current time in New York
+- Minimal ADK example, easy to extend
+- Use as a standalone script or as a package
+
+### Full Agent (`full_agent/full_agent.py`)
+- Fetches **real weather** for any city (OpenWeatherMap API)
+- Interactive CLI: type queries, change units, or exit
+- Sub-agents for greetings and farewells
+- Guardrails: block certain cities/keywords (configurable)
+- Remembers user temperature unit preference (Celsius/Fahrenheit)
+- All config via `.env` (API keys, blocked cities, etc.)
+- Logging for all output
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### 1. Clone the Repository
-
 ```bash
 git clone https://github.com/maniaclab/multi_tool_agent.git
 cd multi_tool_agent
 ```
 
 ### 2. Set Up a Virtual Environment
-
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
 
 ### 3. Install Dependencies
-
 ```bash
-pip install google-adk litellm python-dotenv
+pip install google-adk litellm python-dotenv requests
 ```
-
----
-
-## 🔐 Environment Variables
-
-Create a `.env` file in the `multi_tool_agent/` folder:
-
-```
-GOOGLE_GENAI_USE_VERTEXAI=FALSE
-GOOGLE_API_KEY=your_google_ai_studio_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-```
-
-> ⚠️ **Never commit `.env` to version control.** It contains secrets.
 
 ---
 
 ## 🧠 Usage
 
-### Run via Jupyter Notebook
+### Simple Agent (Demo)
+- See [`agent.py`](./agent.py) or [`agent/README_agent.md`](./agent/README_agent.md)
+- Example:
+  ```python
+  from agent import root_agent
+  print(root_agent.tools[0]("New York"))  # Weather
+  print(root_agent.tools[1]("New York"))  # Time
+  ```
+- **Note:** Only supports "New York"; weather is mock data.
+- **Note:** `agent.py` and `agent/agent.py` are functionally the same for demo purposes.
 
-1. Start Jupyter:
-```bash
-jupyter notebook
-```
+### Full Agent (Production/Interactive)
+- See [`full_agent/full_agent.py`](./full_agent/full_agent.py) or [`full_agent/README_full_agent.md`](./full_agent/README_full_agent.md)
+- Create a `.env` file in `full_agent/` (see the full agent README for details)
+- Run:
+  ```bash
+  python full_agent/full_agent.py
+  ```
+- Type queries like:
+  - `What's the weather in London?`
+  - `set unit to fahrenheit`
+  - `exit`
 
-2. Open `agent.ipynb` and run the cells sequentially to:
-   - Set up the environment
-   - Configure multiple AI models
-   - Create and test the weather agent
-   - Run interactive conversations
-
-### Run the agent via interactive Dev UI
-
-```bash
-adk web
-```
-
-Then open `http://localhost:8080` in your browser to chat with the agent.
-
-### Or run in terminal:
-
-```bash
-adk run
-```
-
----
-
-## 🤖 Supported Models
-
-The agent supports multiple AI models through LiteLLM integration:
-
-- Gemini: `gemini-2.0-flash`
-- GPT-4: `openai/gpt-4.1`
-- Claude: `anthropic/claude-sonnet-4-20250514`
-
-You can easily switch between models by modifying the `AGENT_MODEL` constant in the code.
+### Jupyter Notebook (Learning Only)
+- `agent.ipynb` is for step-by-step experimentation and learning. Not intended for production use.
 
 ---
 
-## 🔒 .gitignore
+## 🔐 Environment Variables & .gitignore
 
-This repo uses `.gitignore` to prevent committing sensitive or unnecessary files:
-
-```
-.venv/
-.env
-__pycache__/
-.ipynb_checkpoints/
-```
-
-If `.env` or cache files were already committed:
-```bash
-git rm --cached .env
-git commit -m "Remove tracked .env file"
-```
+- Each agent folder can have its own `.env` and `.gitignore` (recommended for secrets isolation)
+- Example for `full_agent/.env`:
+  ```
+  OPENWEATHER_API_KEY=your_openweathermap_api_key_here
+  BLOCKED_CITIES=paris,moscow
+  ...
+  ```
+- **Never commit `.env` files to git!**  
+  All `.gitignore` files in this repo are set up to ignore `.env` and cache files in their respective folders.
 
 ---
 
-## 📌 Notes
+## 📸 Demo Screenshots
 
-- The agent currently only supports:
-  - Weather: `New York` (add more manually or via API)
-  - Time: `New York` (ZoneInfo support for more cities)
-- You can extend the agent by:
-  - Adding real weather APIs like OpenWeatherMap
-  - Supporting more timezones
-  - Defining additional tools
-  - Adding more AI models through LiteLLM
+*Coming soon!*
 
 ---
 
-## 📚 References
+## 📚 References & More Info
 
+- [Simple Agent README](./agent/README_agent.md)
+- [Full Agent README](./full_agent/README_full_agent.md)
 - [Google ADK Docs](https://github.com/google/generative-ai-docs/tree/main/tools/agent-development-kit)
-- [Google AI Studio](https://aistudio.google.com)
-- [Python `zoneinfo`](https://docs.python.org/3/library/zoneinfo.html)
+- [OpenWeatherMap API](https://openweathermap.org/api)
 - [LiteLLM Documentation](https://docs.litellm.ai)
 
 ---
@@ -154,6 +136,12 @@ git commit -m "Remove tracked .env file"
 ## 👨‍💻 Author
 
 Built by [Akash Pai](https://github.com/Akash-N-Pai) for learning and experimentation with Google's ADK and Gemini APIs.
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and suggestions are welcome! Please open an issue or pull request.
 
 ---
 
