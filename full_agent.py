@@ -22,14 +22,14 @@ load_dotenv()
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.ERROR)
 
-# --- Model Constants ---
-MODEL_GEMINI_2_0_FLASH = "gemini-2.0-flash"
-MODEL_GPT_4O = "openai/gpt-4.1"
-MODEL_CLAUDE_SONNET = "anthropic/claude-sonnet-4-20250514"
-
 # --- Weather Tool (OpenWeatherMap API) ---
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+if not OPENWEATHER_API_KEY:
+    raise RuntimeError("OPENWEATHER_API_KEY not set in .env file. Please obtain an API key from https://openweathermap.org/ and add it to your .env.")
 OPENWEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
+
+# --- Configurable Blocked Cities ---
+BLOCKED_CITIES = os.getenv("BLOCKED_CITIES", "paris").split(",")
 
 def get_weather(city: str) -> dict:
     """Fetches real weather data for any city using OpenWeatherMap API."""
@@ -101,7 +101,7 @@ def block_keyword_guardrail(callback_context: CallbackContext, llm_request: LlmR
 def block_paris_tool_guardrail(tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext) -> Optional[Dict]:
     if tool.name == "get_weather_stateful":
         city_argument = args.get("city", "")
-        if city_argument and city_argument.lower() == "paris":
+        if city_argument and city_argument.lower() in [c.strip().lower() for c in BLOCKED_CITIES]:
             tool_context.state["guardrail_tool_block_triggered"] = True
             return {
                 "status": "error",
@@ -147,8 +147,16 @@ initial_state = {"user_preference_temperature_unit": "Celsius"}
 session_service = InMemorySessionService()
 
 # --- Agent Interaction Function ---
-async def call_agent_async(query: str, runner, user_id, session_id):
-    print(f"\n>>> User Query: {query}")
+async def call_agent_async(query: str, runner: Runner, user_id: str, session_id: str) -> None:
+    """
+    Sends a query to the agent and logs the final response.
+    Args:
+        query (str): The user's input.
+        runner (Runner): The ADK runner instance.
+        user_id (str): The user ID for the session.
+        session_id (str): The session ID.
+    """
+    logging.info(f"\n>>> User Query: {query}")
     content = types.Content(role='user', parts=[types.Part(text=query)])
     final_response_text = "Agent did not produce a final response."
     async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
@@ -158,10 +166,52 @@ async def call_agent_async(query: str, runner, user_id, session_id):
             elif event.actions and event.actions.escalate:
                 final_response_text = f"Agent escalated: {event.error_message or 'No specific message.'}"
             break
-    print(f"<<< Agent Response: {final_response_text}")
+    logging.info(f"<<< Agent Response: {final_response_text}")
 
-# --- Main Conversation Loop ---
-async def main():
+# --- Main Conversation Loop (Interactive CLI) ---
+async def interactive_main() -> None:
+    """
+    Runs an interactive CLI loop for user queries to the agent.
+    Allows changing temperature unit preference and handles graceful exit.
+    """
+    session = await session_service.create_session(
+        app_name=APP_NAME,
+        user_id=USER_ID,
+        session_id=SESSION_ID,
+        state=initial_state
+    )
+    runner = Runner(
+        agent=root_agent,
+        app_name=APP_NAME,
+        session_service=session_service
+    )
+    logging.info("Type 'exit' or 'quit' to end the conversation.")
+    logging.info("You can also type 'set unit to fahrenheit' or 'set unit to celsius' to change temperature units.")
+    while True:
+        try:
+            user_input = input("You: ")
+        except (EOFError, KeyboardInterrupt):
+            logging.info("\nGoodbye!")
+            break
+        if user_input.strip().lower() in {"exit", "quit"}:
+            logging.info("Goodbye!")
+            break
+        # Check for unit change command
+        if user_input.strip().lower() == "set unit to fahrenheit":
+            session.state["user_preference_temperature_unit"] = "Fahrenheit"
+            logging.info("Temperature unit set to Fahrenheit.")
+            continue
+        elif user_input.strip().lower() == "set unit to celsius":
+            session.state["user_preference_temperature_unit"] = "Celsius"
+            logging.info("Temperature unit set to Celsius.")
+            continue
+        await call_agent_async(user_input, runner, USER_ID, SESSION_ID)
+
+# --- Demo Conversation (for reference/testing) ---
+async def demo_main() -> None:
+    """
+    Runs a demo conversation with hardcoded queries for testing.
+    """
     session = await session_service.create_session(
         app_name=APP_NAME,
         user_id=USER_ID,
@@ -181,4 +231,7 @@ async def main():
     await call_agent_async("Thanks, bye!", runner, USER_ID, SESSION_ID)
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    try:
+        asyncio.run(interactive_main())
+    except KeyboardInterrupt:
+        print("\nGoodbye!") 
